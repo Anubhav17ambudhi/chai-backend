@@ -12,3 +12,5 @@ class ApiResponse{
     //Server error responses(500 to 599)
   }
 }
+
+export { ApiResponse }
