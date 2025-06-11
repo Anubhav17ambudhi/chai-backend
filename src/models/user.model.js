@@ -11,6 +11,14 @@ const userSchema = new Schema({
     trim: true,
     index: true//to make anything very easily searchable
   },
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    lowercase: true,
+    trim: true,
+    index: true//to make anything very easily searchable
+  },
   fullname: {
     type: String,
     required: true,
