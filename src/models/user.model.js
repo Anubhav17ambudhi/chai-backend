@@ -11,13 +11,6 @@ const userSchema = new Schema({
     trim: true,
     index: true//to make anything very easily searchable
   },
-  username: {
-    type: String,
-    required: true,
-    unique: true,
-    lowercase: true,
-    trim: true,
-  },
   fullname: {
     type: String,
     required: true,
