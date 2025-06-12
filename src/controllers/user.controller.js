@@ -1,7 +1,7 @@
 import { asyncHandler } from "../utils/asyncHandler.js"
 import { ApiError } from "../utils/ApiError.js"
 import { User } from "../models/user.model.js"
-import { uploadOnCloudinary } from "../utils/cloudinary.js"
+import { uploadOnCloudinary,deleteImageByUrl } from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
 import jwt from "jsonwebtoken"
 
@@ -251,8 +251,8 @@ const updateAccountDetails = asyncHandler(async(req,res) => {
     throw new ApiError(400,"All fields are required");
   }
 
-  const user = User.findByIdAndUpdate(
-    req.user?.id,
+  const user = await User.findByIdAndUpdate(
+    req.user?._id,
     {
       $set: {
         fullname,
@@ -276,26 +276,32 @@ const updateUserAvatar = asyncHandler(async(req,res) => {
 
   const avatar = await uploadOnCloudinary(avatarLocalPath)
 
-  if(!avatar.url){
+  if(!avatar?.url){
     throw new ApiError(400,"Error while uploading on avatar")
   }
 
-  const user = await User.findByIdAndUpdate(
-    req.user?._id,
-    {
-      $set:{
-        avatar: avatar.url
-      }
-    },
-    {new: true}
-  ).select("-password")
+  const user = await User.findById(req.user?._id).select("-password -refreshToken")
 
+  if(!user){
+    throw new ApiError(404, "User not found");
+  }
+
+  const oldImageUrl = user.avatar
+
+  user.avatar = avatar.url;
+  await user.save({validateBeforeSave: false})
+
+  if(oldImageUrl){
+    await deleteImageByUrl(oldImageUrl);
+  }
   return res
   .status(200)
   .json(new ApiResponse(200,user,"Avatar image updated successfully"));
 })
 
 const updateCoverImage = asyncHandler(async(req,res) => {
+  //we are actually using a middle ware to get to this that the auth middleware is used otherwise 
+  // the req.user will never be generated
   const coverImageLocalPath = req.file?.path
 
   if(!coverImageLocalPath){
@@ -304,19 +310,26 @@ const updateCoverImage = asyncHandler(async(req,res) => {
 
   const coverImage = await uploadOnCloudinary(coverImageLocalPath)
 
-  if(!coverImage.url){
+  if(!coverImage?.url){
     throw new ApiError(400,"Error while uploading on coverImage")
   }
 
-  const user = await User.findByIdAndUpdate(
-    req.user?._id,
-    {
-      $set:{
-        coverImage: coverImage.url
-      }
-    },
-    {new: true}
-  ).select("-password")
+  const user = await User.findById(req.user?._id).select("-password -refreshToken")
+
+  if(!user){
+    throw new ApiError(404, "User not found");
+  }
+
+  const oldImageUrl = user.coverImage
+  
+  user.coverImage = coverImage.url;
+  await user.save({validateBeforeSave: false})
+  
+
+  if(oldImageUrl){//this validation makes sure that if there was no coverImage initially then too 
+    // we don't get an error we just update the new CoverImage that is it
+    await deleteImageByUrl(oldImageUrl);
+  }
 
   return res
   .status(200)

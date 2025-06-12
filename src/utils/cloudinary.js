@@ -29,4 +29,21 @@ const uploadOnCloudinary = async (localFilePath) => {
 
 // cloudinary.v2.uploader.upload("https://up")
 
-export {uploadOnCloudinary}
+async function deleteImageByUrl(url) {
+  try {
+    // Extract the public ID from URL
+    const parts = url.split('/');
+    const versionIndex = parts.findIndex(part => part.startsWith('v'));
+    const publicIdWithExtension = parts.slice(versionIndex + 1).join('/');
+    const publicId = publicIdWithExtension.replace(/\.[^/.]+$/, ""); // Remove extension
+
+    // Delete the image
+    const result = await cloudinary.uploader.destroy(publicId);
+    console.log(result);
+  } catch (err) {
+    console.error("Error deleting image:", err);
+  }
+}
+
+
+export {uploadOnCloudinary,deleteImageByUrl}
